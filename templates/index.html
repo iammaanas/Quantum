@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Quantum Circuit Simulator</title>
+<style>
+:root{color-scheme:dark;--bg:#090d18;--panel:#121a2b;--line:#26344d;--text:#edf3ff;--muted:#9aabc5;--accent:#8b7cff;--cyan:#49d9d0}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 15% 0,#1b2450 0,transparent 35%),var(--bg);color:var(--text);font:15px Inter,system-ui,sans-serif}
+header{padding:26px max(5vw,22px);border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+h1{font-size:clamp(22px,4vw,34px);margin:0}header p{margin:6px 0 0;color:var(--muted)}
+main{max-width:1200px;margin:28px auto;padding:0 20px;display:grid;grid-template-columns:340px 1fr;gap:18px}
+.panel{background:linear-gradient(145deg,#151e32,#101727);border:1px solid var(--line);border-radius:16px;padding:20px;min-width:0}
+h2{font-size:17px;margin:0 0 16px}label{display:block;color:var(--muted);font-size:13px;margin:12px 0 6px}
+select,input,button{font:inherit;border-radius:9px;border:1px solid var(--line);padding:10px;background:#0c1322;color:var(--text);width:100%}
+button{cursor:pointer;background:#6f61e8;border:0;font-weight:650;margin-top:12px}button.secondary{background:#202c45;border:1px solid var(--line)}button:hover{filter:brightness(1.15)}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.stat{background:#0c1322;border:1px solid var(--line);padding:12px;border-radius:10px}.stat small{color:var(--muted)}.stat strong{display:block;font-size:20px;margin-top:4px}
+#circuit{overflow:auto;padding:14px;background:#0b1220;border-radius:10px;min-height:86px;color:var(--cyan);font-family:ui-monospace,monospace;white-space:pre}
+#results{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}.bars{display:flex;align-items:end;gap:7px;height:190px;padding:12px 4px 24px;border-bottom:1px solid var(--line);overflow-x:auto}
+.bar{min-width:25px;flex:1;background:linear-gradient(#49d9d0,#655ce8);border-radius:5px 5px 0 0;position:relative}.bar span{position:absolute;top:100%;left:50%;transform:translateX(-50%);font-size:10px;color:var(--muted);padding-top:5px}
+table{width:100%;border-collapse:collapse;font-size:13px}td,th{text-align:right;padding:7px;border-bottom:1px solid var(--line)}td:first-child,th:first-child{text-align:left}
+.muted{color:var(--muted)}#message{color:#ffc66d;min-height:20px;margin-top:10px}
+@media(max-width:800px){main{grid-template-columns:1fr}#results{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<header><div><h1>Quantum Circuit Simulator</h1><p>Explore state vectors, superposition and entanglement</p></div><span class="muted">STATE-VECTOR LAB</span></header>
+<main>
+<section class="panel">
+<h2>Build a circuit</h2>
+<label>Number of qubits</label><select id="n"><option>1</option><option selected>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select>
+<label>Gate</label><select id="gate"><optgroup label="Single qubit"><option>H</option><option>X</option><option>Y</option><option>Z</option><option>I</option><option>S</option><option>T</option><option>RX</option><option>RY</option><option>RZ</option></optgroup><optgroup label="Multi-qubit"><option>CNOT</option><option>CZ</option><option>SWAP</option><option>TOFFOLI</option></optgroup></select>
+<div class="grid"><div><label>Control / first qubit</label><select id="q1"><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div><div><label>Target / second qubit</label><select id="q2"><option>1</option><option>0</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div></div>
+<label>Rotation angle (radians)</label><input id="theta" type="number" step="0.1" value="1.5708">
+<button id="add">Apply gate</button><button class="secondary" id="reset">Reset circuit</button>
+<label>Quick demonstrations</label><select id="demo"><option value="bell">Bell state (entanglement)</option><option value="coin">Hadamard superposition</option><option value="interference">H then H (interference)</option><option value="ghz">3-qubit GHZ</option><option value="ry">Y-axis rotation</option><option value="bell_phi_plus">Bell Φ+</option><option value="bell_phi_minus">Bell Φ−</option><option value="bell_psi_plus">Bell Ψ+</option><option value="bell_psi_minus">Bell Ψ−</option></select>
+<button class="secondary" id="runDemo">Load demonstration</button>
+<label>Measurement shots</label><input id="shots" type="number" min="1" max="1000000" value="1000">
+<button id="measure">Run measurement</button><div id="message"></div>
+</section>
+<section>
+<div class="panel"><h2>Circuit operations</h2><div id="circuit">|000…0⟩  →  Ready for gates</div><p class="muted">Qubit 0 is the leftmost bit in displayed basis states.</p></div>
+<div class="panel" style="margin-top:18px"><h2>Simulation results</h2><div class="stats"><div class="stat"><small>Qubits</small><strong id="qubits">2</strong></div><div class="stat"><small>Basis states</small><strong id="basis">4</strong></div><div class="stat"><small>Operations</small><strong id="ops">0</strong></div></div>
+<div id="results"><div><h2>Measurement distribution</h2><div class="bars" id="bars"></div></div><div><h2>State vector</h2><div style="overflow:auto"><table><thead><tr><th>Basis</th><th>Amplitude</th><th>Probability</th></tr></thead><tbody id="state"></tbody></table></div></div></div></div>
+</section>
+</main>
+<script>
+const sid="browser-"+Math.random().toString(36).slice(2);let operations=[],last=null;
+const $=id=>document.getElementById(id);
+function setMessage(s){$("message").textContent=s}
+function selectedQubits(g){if(["CNOT","CZ","SWAP"].includes(g))return [+$("q1").value,+$("q2").value];if(g==="TOFFOLI")return [+$("q1").value,+$("q2").value,Math.min(+$("n").value-1,2)];return [+$("q1").value]}
+async function api(path,body){const r=await fetch(path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});const d=await r.json();if(!r.ok)throw Error(d.error||"Request failed");return d}
+function render(data){last=data.snapshot||data;const rows=last.state||[];$("qubits").textContent=last.n_qubits;$("basis").textContent=rows.length;$("ops").textContent=(last.log||[]).length;
+$("circuit").textContent=(last.log||[]).map((x,i)=>`${i+1}. ${x.gate}(${x.qubits.join(",")})`).join("   →   ")||"Ready for gates";
+$("state").innerHTML=rows.map(x=>`<tr><td>| ${x.basis} ⟩</td><td>${x.real.toFixed(3)} ${x.imag<0?"−":"+"} ${Math.abs(x.imag).toFixed(3)}i</td><td>${(x.probability*100).toFixed(2)}%</td></tr>`).join("");
+const counts=data.counts||{};const max=Math.max(1,...Object.values(counts));$("bars").innerHTML=Object.entries(counts).map(([k,v])=>`<div class="bar" style="height:${Math.max(2,v/max*100)}%"><span>${k}</span></div>`).join("")||'<span class="muted">Run measurement to generate samples.</span>'}
+async function simulate(reset=false){const data=await api("/api/simulate",{session_id:sid,n_qubits:+$("n").value,gates:operations,shots:+$("shots").value,reset});render(data)}
+$("add").onclick=async()=>{try{const g=$("gate").value;operations.push({gate:g,qubits:selectedQubits(g),theta:+$("theta").value});await simulate();setMessage("Gate applied successfully.")}catch(e){operations.pop();setMessage(e.message)}};
+$("reset").onclick=async()=>{operations=[];try{await simulate(true);setMessage("Circuit reset.")}catch(e){setMessage(e.message)}};
+$("measure").onclick=async()=>{try{await simulate();setMessage("Measurement sampling complete.")}catch(e){setMessage(e.message)}};
+$("runDemo").onclick=async()=>{try{const r=await fetch("/api/demo/"+$("demo").value);const d=await r.json();if(!r.ok)throw Error(d.error);operations=d.snapshot.log.map(x=>({gate:x.gate,qubits:x.qubits}));render(d);setMessage("Demonstration loaded.")}catch(e){setMessage(e.message)}};
+$("n").onchange=()=>{$("q1").innerHTML=$("q2").innerHTML="";for(let i=0;i<+$("n").value;i++){for(const id of ["q1","q2"]){const o=document.createElement("option");o.value=i;o.textContent=i;$(id).append(o)}}$("q2").value=Math.min(1,+$("n").value-1);operations=[];simulate(true).catch(e=>setMessage(e.message))};
+simulate(true).catch(e=>setMessage(e.message));
+</script>
+</body></html>
